@@ -1,0 +1,121 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/**
+ * @title GovernmentProjectContract
+ * @dev Smart contract for issuing and managing government project contracts on blockchain.
+ */
+contract GovernmentProjectContract {
+
+    address public governmentAuthority; // Address of the authorized government entity
+    address public executor; // Address of PT. Ninetynine Digital Niaga
+    uint public projectCount = 0; // Counter for projects
+
+    struct Project {
+        uint id;
+        string projectName;
+        string projectDescription;
+        uint256 budget;
+        address contractor;
+        uint startDate;
+        uint endDate;
+        bool isCompleted;
+    }
+
+    mapping(uint => Project) public projects; // Mapping of project ID to Project details
+
+    event ProjectCreated(
+        uint id,
+        string projectName,
+        uint256 budget,
+        address contractor
+    );
+
+    event ProjectUpdated(
+        uint id,
+        string projectName,
+        uint256 budget,
+        address contractor,
+        bool isCompleted
+    );
+
+    modifier onlyGovernmentAuthority() {
+        require(msg.sender == governmentAuthority, "Only government authority can perform this action.");
+        _;
+    }
+
+    modifier onlyExecutor() {
+        require(msg.sender == executor, "Only the authorized executor can perform this action.");
+        _;
+    }
+
+    constructor(address _executor) {
+        governmentAuthority = msg.sender; // Set the deploying address as the government authority
+        executor = _executor; // Set PT. Ninetynine Digital Niaga as the executor
+    }
+
+    /**
+     * @dev Create a new government project contract.
+     * @param _projectName Name of the project.
+     * @param _projectDescription Description of the project.
+     * @param _budget Budget allocated for the project.
+     * @param _contractor Address of the contractor assigned to the project.
+     * @param _startDate Start date of the project.
+     * @param _endDate End date of the project.
+     */
+    function createProject(
+        string memory _projectName,
+        string memory _projectDescription,
+        uint256 _budget,
+        address _contractor,
+        uint _startDate,
+        uint _endDate
+    ) public onlyGovernmentAuthority {
+        require(_budget > 0, "Budget must be greater than zero.");
+        require(_contractor != address(0), "Contractor address must be valid.");
+
+        projectCount++;
+        projects[projectCount] = Project(
+            projectCount,
+            _projectName,
+            _projectDescription,
+            _budget,
+            _contractor,
+            _startDate,
+            _endDate,
+            false
+        );
+
+        emit ProjectCreated(projectCount, _projectName, _budget, _contractor);
+    }
+
+    /**
+     * @dev Update the status or details of an existing project.
+     * @param _projectId ID of the project to update.
+     * @param _isCompleted Completion status of the project.
+     */
+    function updateProjectStatus(uint _projectId, bool _isCompleted) public onlyExecutor {
+        require(_projectId > 0 && _projectId <= projectCount, "Invalid project ID.");
+
+        Project storage project = projects[_projectId];
+        project.isCompleted = _isCompleted;
+
+        emit ProjectUpdated(
+            project.id,
+            project.projectName,
+            project.budget,
+            project.contractor,
+            project.isCompleted
+        );
+    }
+
+    /**
+     * @dev View details of a project by its ID.
+     * @param _projectId ID of the project.
+     * @return Project details.
+     */
+    function getProject(uint _projectId) public view returns (Project memory) {
+        require(_projectId > 0 && _projectId <= projectCount, "Invalid project ID.");
+        return projects[_projectId];
+    }
+}
